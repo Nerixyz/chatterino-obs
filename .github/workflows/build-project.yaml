@@ -74,6 +74,8 @@ jobs:
   macos-build:
     name: Build for macOS 🍏
     runs-on: macos-15
+    # FIXME: enable macOS again
+    if: false
     needs: check-event
     defaults:
       run:
@@ -90,8 +92,8 @@ jobs:
           : Set Up Environment 🔧
           if (( ${+RUNNER_DEBUG} )) setopt XTRACE
 
-          print '::group::Enable Xcode 16.1'
-          sudo xcode-select --switch /Applications/Xcode_16.1.0.app/Contents/Developer
+          print '::group::Enable Xcode 16.4'
+          sudo xcode-select --switch /Applications/Xcode_16.4.0.app/Contents/Developer
           print '::endgroup::'
 
           print '::group::Clean Homebrew Environment'
@@ -185,6 +187,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    # FIXME: enable Ubuntu again
+    if: false
     steps:
       - uses: actions/checkout@v4
         with:

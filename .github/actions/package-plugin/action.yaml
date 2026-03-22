@@ -11,35 +11,35 @@ inputs:
   codesign:
     description: Enable codesigning (macOS only)
     required: false
-    default: 'false'
+    default: "false"
   notarize:
     description: Enable notarization (macOS only)
     required: false
-    default: 'false'
+    default: "false"
   codesignIdent:
     description: Developer ID for application codesigning (macOS only)
     required: false
-    default: '-'
+    default: "-"
   installerIdent:
     description: Developer ID for installer package codesigning (macOS only)
     required: false
-    default: ''
+    default: ""
   codesignTeam:
     description: Developer team for codesigning (macOS only)
     required: false
-    default: ''
+    default: ""
   codesignUser:
     description: Apple ID username for notarization (macOS only)
     required: false
-    default: ''
+    default: ""
   codesignPass:
     description: Apple ID password for notarization (macOS only)
     required: false
-    default: ''
+    default: ""
   package:
     description: Create Windows or macOS installation package
     required: false
-    default: 'false'
+    default: "false"
   workingDirectory:
     description: Working directory for packaging
     required: false
@@ -95,6 +95,13 @@ runs:
         if [[ '${{ inputs.package }}' == 'true' ]] package_args+=(--package)
 
         .github/scripts/package-ubuntu ${package_args}
+
+    - name: Install InnoSetup
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install innosetup
+        echo "C:\Program Files (x86)\Inno Setup 6\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Run Windows Packaging
       if: runner.os == 'Windows'

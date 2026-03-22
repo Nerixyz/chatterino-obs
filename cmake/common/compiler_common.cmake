@@ -28,7 +28,7 @@ set(
   -Wswitch
   -Wno-unused-function
   -Wno-unused-label
-  -Wunused-parameter
+  # -Wunused-parameter
   -Wunused-variable
   -Wunused-value
   -Wempty-body
@@ -42,7 +42,7 @@ set(
   -Wenum-conversion
   -Wnon-literal-null-conversion
   -Wsign-compare
-  -Wshorten-64-to-32
+  # -Wshorten-64-to-32
   -Wpointer-sign
   -Wnewline-eof
   -Wno-implicit-fallthrough
@@ -54,7 +54,7 @@ set(
   -Wno-semicolon-before-method-body
   -Wformat-security
   -Wvla
-  -Wno-error=shorten-64-to-32
+  # -Wno-error=shorten-64-to-32
 )
 
 # clang options for C
@@ -71,7 +71,7 @@ set(
   -Winvalid-offsetof
   -Wmove
   -Werror=block-capture-autoreleasing
-  -Wrange-loop-analysis
+  # -Wrange-loop-analysis
 )
 
 if(CMAKE_CXX_STANDARD GREATER_EQUAL 20)

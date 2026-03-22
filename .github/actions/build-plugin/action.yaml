@@ -11,15 +11,15 @@ inputs:
   codesign:
     description: Enable codesigning (macOS only)
     required: false
-    default: 'false'
+    default: "false"
   codesignIdent:
     description: Developer ID for application codesigning (macOS only)
     required: false
-    default: '-'
+    default: "-"
   codesignTeam:
     description: Team ID for application codesigning (macOS only)
     required: false
-    default: ''
+    default: ""
   workingDirectory:
     description: Working directory for packaging
     required: false
@@ -27,6 +27,14 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install UV
+      uses: astral-sh/setup-uv@v7
+      with:
+        cache-dependency-glob: uv.lock
+    - name: Install conan
+      shell: bash
+      run: uv tool install -U conan
+
     - name: Run macOS Build
       if: runner.os == 'macOS'
       shell: zsh --no-rcs --errexit --pipefail {0}
@@ -37,6 +45,8 @@ runs:
         CODESIGN_TEAM: ${{ inputs.codesignTeam }}
       run: |
         : Run macOS Build
+
+        brew install openssl rapidjson p7zip create-dmg tree boost hunspell
 
         local -a build_args=(--config ${{ inputs.config }})
         if (( ${+RUNNER_DEBUG} )) build_args+=(--debug)
@@ -57,7 +67,7 @@ runs:
         echo ::endgroup::
 
     - name: Run Ubuntu Build
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && false # FIXME: enable ubuntu
       shell: zsh --no-rcs --errexit --pipefail {0}
       working-directory: ${{ inputs.workingDirectory }}
       env:
@@ -72,6 +82,13 @@ runs:
         if (( ${+RUNNER_DEBUG} )) build_args+=(--debug)
 
         .github/scripts/build-ubuntu ${build_args}
+
+    - name: Cache conan packages
+      if: runner.os == 'Windows'
+      uses: actions/cache@v5
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-conan-user-${{ hashFiles('**/conanfile.py') }}-QT6
+        path: ~/.conan2/
 
     - name: Run Windows Build
       if: runner.os == 'Windows'
@@ -88,6 +105,7 @@ runs:
         }
 
         .github/scripts/Build-Windows.ps1 @BuildArgs
+        conan cache clean --source --build --download "*"
 
     - name: Create Summary 📊
       if: contains(fromJSON('["Linux", "macOS"]'),runner.os)

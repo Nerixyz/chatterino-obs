@@ -1,5 +1,6 @@
 #include "Setup.h"
 #include "common/Args.hpp"
+#include "common/Channel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Resources.hpp"
@@ -25,15 +26,12 @@
 #include <QVBoxLayout>
 #include <QStandardPaths>
 #include <QLabel>
-#include <qdockwidget.h>
 #include <QMainWindow>
-#include <qnamespace.h>
 #include <QUuid>
-#include <qobjectdefs.h>
-#include <qsizepolicy.h>
-#include <quuid.h>
+#include <QSizePolicy>
+#include <QSSLSocket>
+#include <QPluginLoader>
 #include <QPointer>
-#include <util/base.h>
 
 namespace {
 
@@ -41,7 +39,7 @@ class ChatWidget : public QFrame {
 public:
 	ChatWidget(QWidget *parent) : QFrame(parent), split(new chatterino::Split(this))
 	{
-		this->split->setChannel(chatterino::getApp()->getTwitch()->getOrAddChannel("pajlada"));
+		this->split->setChannel(chatterino::Channel::getEmpty());
 		this->split->setSizePolicy({QSizePolicy::Expanding, QSizePolicy::Expanding});
 	}
 
@@ -113,6 +111,61 @@ private:
 	std::vector<QPointer<ChatWidget>> widgets;
 };
 
+#ifdef Q_OS_WIN
+QString obsModuleDataPath(const char *name)
+{
+	char *res = obs_module_file(name);
+	if (!res) {
+		return {};
+	}
+	auto str = QString::fromUtf8(res);
+	bfree(res);
+	return str;
+}
+
+void tryLoadTLS(const char *path)
+{
+	auto qPath = obsModuleDataPath(path);
+	if (qPath.isEmpty()) {
+		obs_log(LOG_INFO, "%s not found in data, skipping", path);
+		return;
+	}
+	QPluginLoader loader(qPath);
+	if (loader.isLoaded()) {
+		obs_log(LOG_INFO, "%s is already loaded", path);
+		return;
+	}
+	if (!loader.load()) {
+		obs_log(LOG_INFO, "%s failed to load: %s", path, loader.errorString().toStdString().c_str());
+		return;
+	}
+	if (!loader.instance()) {
+		obs_log(LOG_INFO, "%s no instance.", path);
+		return;
+	}
+	obs_log(LOG_INFO, "%s loaded (instance: %s)", path, loader.instance()->metaObject()->className());
+}
+
+void ensureTLS()
+{
+	if (!QSslSocket::availableBackends().empty()) {
+		return;
+	}
+#ifdef NDEBUG
+	tryLoadTLS("qschannelbackend.dll");
+	tryLoadTLS("qcertonlybackend.dll");
+	tryLoadTLS("qopensslbackend.dll");
+#else
+	tryLoadTLS("qschannelbackendd.dll");
+	tryLoadTLS("qcertonlybackendd.dll");
+	tryLoadTLS("qopensslbackendd.dll");
+#endif
+
+	std::string backends = QSslSocket::availableBackends().join(", ").toStdString();
+	obs_log(LOG_INFO, "TLS backends: %s", backends.c_str());
+}
+#endif
+
 std::unique_ptr<PluginState> GLOBAL_STATE;
 } // namespace
 
@@ -123,6 +176,10 @@ namespace chatterino::obs {
 namespace {
 extern "C" void chatterino_obs_init()
 {
+#ifdef Q_OS_WIN
+	ensureTLS();
+#endif
+
 	chatterino::initResources();
 	chatterino::NetworkConfigurationProvider::applyFromEnv(chatterino::Env::get());
 	chatterino::IvrApi::initialize();

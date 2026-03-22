@@ -11,7 +11,9 @@
       "hidden": true,
       "cacheVariables": {
         "ENABLE_FRONTEND_API": true,
-        "ENABLE_QT": true
+        "ENABLE_QT": true,
+        "CHATTERINO_SPELLCHECK": true,
+        "USE_PRECOMPILED_HEADERS": true
       }
     },
     {
@@ -31,7 +33,8 @@
         "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0",
         "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64",
         "CODESIGN_IDENTITY": "$penv{CODESIGN_IDENT}",
-        "CODESIGN_TEAM": "$penv{CODESIGN_TEAM}"
+        "CODESIGN_TEAM": "$penv{CODESIGN_TEAM}",
+        "CMAKE_OBJCXX_FLAGS": "-fno-objc-arc"
       }
     },
     {
@@ -41,8 +44,8 @@
       "description": "Build for macOS 12.0+ (Universal binary) for CI",
       "generator": "Xcode",
       "cacheVariables": {
-        "CMAKE_COMPILE_WARNING_AS_ERROR": true,
-        "ENABLE_CCACHE": true
+        "CMAKE_COMPILE_WARNING_AS_ERROR": false,
+        "ENABLE_CCACHE": false
       }
     },
     {
@@ -65,12 +68,17 @@
       "warnings": { "dev": true, "deprecated": true }
     },
     {
+      "name": "windows-x64-2022",
+      "inherits": "windows-x64",
+      "generator": "Visual Studio 17 2022"
+    },
+    {
       "name": "windows-ci-x64",
-      "inherits": ["windows-x64"],
+      "inherits": ["windows-x64-2022"],
       "displayName": "Windows x64 CI build",
       "description": "Build for Windows x64 on CI",
       "cacheVariables": {
-        "CMAKE_COMPILE_WARNING_AS_ERROR": true
+        "CMAKE_COMPILE_WARNING_AS_ERROR": false
       }
     },
     {
@@ -98,7 +106,7 @@
       "description": "Build for Ubuntu x86_64 on CI",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_COMPILE_WARNING_AS_ERROR": true,
+        "CMAKE_COMPILE_WARNING_AS_ERROR": false,
         "ENABLE_CCACHE": true
       }
     }

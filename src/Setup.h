@@ -8,4 +8,4 @@ void chatterino_obs_init();
 
 #ifdef __cplusplus
 };
-#endif
+#endif
