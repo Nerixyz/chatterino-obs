@@ -1,0 +1,4 @@
+[submodule "lib/chatterino2"]
+	path = lib/chatterino2
+	url = https://github.com/nerixyz/chatterino2
+	branch = feat/chatterino-obs

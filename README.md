@@ -1,59 +1,37 @@
-# OBS Plugin Template
+# chatterino-obs
 
-## Introduction
+This is a WIP for embedding Chatterino into OBS.
 
-The plugin template is meant to be used as a starting point for OBS Studio plugin development. It includes:
+For build documentation see https://github.com/obsproject/obs-plugintemplate.
 
-* Boilerplate plugin source code
-* A CMake project file
-* GitHub Actions workflows and repository actions
+Only tested on Windows right now.
+Building/testing:
 
-## Supported Build Environments
+```
+git submodule update --init --recursive
+cmake --preset windows-x64
+cd build_x64
+cmake --build . --config RelWithDebInfo && cmake --install . --config RelWithDebInfo
+```
 
-| Platform  | Tool   |
-|-----------|--------|
-| Windows   | Visual Studio 17 2022 |
-| macOS     | XCode 16.0 |
-| Windows, macOS  | CMake 3.30.5 |
-| Ubuntu 24.04 | CMake 3.28.3 |
-| Ubuntu 24.04 | `ninja-build` |
-| Ubuntu 24.04 | `pkg-config`
-| Ubuntu 24.04 | `build-essential` |
+Then you need to copy OpenSSL from `build_x64/conan/bin` to the plugin's `bin/` (`C:\ProgramData\obs-studio\plugins\chatterino-obs\bin\64bit`).
+OBS doesn't ship a TLS plugin for Qt, so you need to copy `.deps/obs-deps-qt6-2025-08-23-x64/plugins/tls` to `C:\Program Files\obs-studio\bin\64bit` as well.
+This will probably cause issues on some systems, because OBS' build doesn't include the OpenSSL backend and the default SChannel backend has caused some issues in the past.
 
-## Quick Start
+Then you can start OBS. In `Tools`, you should see a new item.
 
-An absolute bare-bones [Quick Start Guide](https://github.com/obsproject/obs-plugintemplate/wiki/Quick-Start-Guide) is available in the wiki.
+As you can tell, this is not an ideal workflow.
 
-## Documentation
+## Windows and clangd
 
-All documentation can be found in the [Plugin Template Wiki](https://github.com/obsproject/obs-plugintemplate/wiki).
+To get compile commands on Windows, you need to open the `build_x64/chatterino-obs.slnx` in Visual Studio and use the Clang Power Tools extension to export compile commands.
+In the Solution Explorer, right click on the top solution item and select `Clang Power Tools > Export Compile Commands`.
+You may need to tell clangd about the build directory:
 
-Suggested reading to get up and running:
-
-* [Getting started](https://github.com/obsproject/obs-plugintemplate/wiki/Getting-Started)
-* [Build system requirements](https://github.com/obsproject/obs-plugintemplate/wiki/Build-System-Requirements)
-* [Build system options](https://github.com/obsproject/obs-plugintemplate/wiki/CMake-Build-System-Options)
-
-## GitHub Actions & CI
-
-Default GitHub Actions workflows are available for the following repository actions:
-
-* `push`: Run for commits or tags pushed to `master` or `main` branches.
-* `pr-pull`: Run when a Pull Request has been pushed or synchronized.
-* `dispatch`: Run when triggered by the workflow dispatch in GitHub's user interface.
-* `build-project`: Builds the actual project and is triggered by other workflows.
-* `check-format`: Checks CMake and plugin source code formatting and is triggered by other workflows.
-
-The workflows make use of GitHub repository actions (contained in `.github/actions`) and build scripts (contained in `.github/scripts`) which are not needed for local development, but might need to be adjusted if additional/different steps are required to build the plugin.
-
-### Retrieving build artifacts
-
-Successful builds on GitHub Actions will produce build artifacts that can be downloaded for testing. These artifacts are commonly simple archives and will not contain package installers or installation programs.
-
-### Building a Release
-
-To create a release, an appropriately named tag needs to be pushed to the `main`/`master` branch using semantic versioning (e.g., `12.3.4`, `23.4.5-beta2`). A draft release will be created on the associated repository with generated installer packages or installation programs attached as release artifacts.
-
-## Signing and Notarizing on macOS
-
-Basic concepts of codesigning and notarization on macOS are explained in the correspodning [Wiki article](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS) which has a specific section for the [GitHub Actions setup](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS#setting-up-code-signing-for-github-actions).
+```yaml
+# .clangd
+CompileFlags:
+  CompilationDatabase: build_x64
+Completion:
+  HeaderInsertion: never
+```

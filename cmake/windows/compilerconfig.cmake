@@ -57,7 +57,3 @@ add_link_options(
   /DEBUG
   /Brepro
 )
-
-if(CMAKE_COMPILE_WARNING_AS_ERROR)
-  add_link_options(/WX)
-endif()

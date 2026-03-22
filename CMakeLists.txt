@@ -30,10 +30,22 @@ if(ENABLE_QT)
   )
   set_target_properties(
     ${CMAKE_PROJECT_NAME}
-    PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
+    PROPERTIES
+      AUTOMOC ON
+      AUTOUIC ON
+      AUTORCC ON
+      CXX_STANDARD 23
   )
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+set(BUILD_APP OFF CACHE BOOL "")
+add_subdirectory(lib/chatterino2 EXCLUDE_FROM_ALL)
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE 
+    src/plugin-main.c
+    src/Setup.cpp
+)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE chatterino-lib)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/lib/chatterino2/src)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

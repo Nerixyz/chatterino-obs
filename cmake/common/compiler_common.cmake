@@ -77,7 +77,3 @@ set(
 if(CMAKE_CXX_STANDARD GREATER_EQUAL 20)
   list(APPEND _obs_clang_cxx_options -fno-char8_t)
 endif()
-
-if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
-  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
-endif()
