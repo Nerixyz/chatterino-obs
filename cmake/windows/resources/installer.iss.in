@@ -7,17 +7,18 @@
 [Setup]
 AppId={{1F9803D7-6788-46BE-B841-C2D85DEB99C6}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
+AppVersion={#MyAppVersion}
+Compression=lzma
 DefaultDirName={commonappdata}\obs-studio\plugins\chatterino-obs
 DefaultGroupName={#MyAppName}
-OutputBaseFilename={#MyAppName}-{#MyAppVersion}-Windows-Installer
-Compression=lzma
-SolidCompression=yes
 DirExistsWarning=no
+DisableProgramGroupPage=yes
+OutputBaseFilename={#MyAppName}-{#MyAppVersion}-Windows-Installer
+SolidCompression=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
