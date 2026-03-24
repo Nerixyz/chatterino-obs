@@ -6,6 +6,7 @@
 #include "singletons/Resources.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Updates.hpp"
+#include "singletons/WindowManager.hpp"
 #include "widgets/splits/Split.hpp"
 #include "common/network/NetworkManager.hpp"
 #include "providers/NetworkConfigurationProvider.hpp"
@@ -37,17 +38,35 @@ namespace {
 
 class ChatWidget : public QFrame {
 public:
-	ChatWidget(QWidget *parent) : QFrame(parent), split(new chatterino::Split(this))
+	ChatWidget(QString id, QWidget *parent)
+		: QFrame(parent),
+		  id_(std::move(id)),
+		  split_(new chatterino::Split(this))
 	{
-		this->split->setChannel(chatterino::Channel::getEmpty());
-		this->split->setSizePolicy({QSizePolicy::Expanding, QSizePolicy::Expanding});
+		this->split_->setChannel(chatterino::Channel::getEmpty());
+		this->split_->setSizePolicy({QSizePolicy::Expanding, QSizePolicy::Expanding});
+		std::ignore = this->split_->actionRequested.connect([this](chatterino::Split::Action action) {
+			if (action == chatterino::Split::Action::Delete) {
+				obs_frontend_remove_dock(this->id_.toStdString().c_str());
+			}
+		});
+		std::ignore = this->split_->channelChanged.connect([this] {
+			auto *parent = qobject_cast<QDockWidget *>(this->parentWidget());
+			if (parent) {
+				parent->setWindowTitle(this->split_->getChannel()->getDisplayName());
+			}
+		});
 	}
 
+	chatterino::Split *split() { return this->split_; }
+	QStringView id() const { return this->id_; }
+
 protected:
-	void resizeEvent(QResizeEvent *event) override { this->split->setGeometry({QPoint{}, this->size()}); }
+	void resizeEvent(QResizeEvent *event) override { this->split_->setGeometry({QPoint{}, this->size()}); }
 
 private:
-	chatterino::Split *split;
+	QString id_;
+	chatterino::Split *split_;
 };
 
 chatterino::Args makeArgs()
@@ -78,26 +97,62 @@ public:
 	}
 
 public:
-	void load() {}
+	void load(obs_data_t *rootData)
+	{
+		const char *str = obs_data_get_string(rootData, "chatterino-splits");
+		if (!str) {
+			return;
+		}
+		// FIXME: use QJsonValue once OBS uses Qt 6.9+
+		this->deserialize(QJsonDocument::fromJson(str).object());
+	}
 
-	void save() {}
+	void save(obs_data_t *rootData)
+	{
+		auto obj = this->serialize();
+		QJsonDocument doc(obj);
+		auto ba = doc.toJson(QJsonDocument::Compact);
+		ba.append('\0'); // I love C strings�
+		obs_data_set_string(rootData, "chatterino-splits", ba.constData());
+	}
+
+	void deserialize(const QJsonObject &rootObj)
+	{
+		for (auto it = rootObj.constBegin(); it != rootObj.constEnd(); it++) {
+			chatterino::SplitDescriptor descriptor;
+			const QJsonObject splitObj = it.value().toObject();
+			chatterino::SplitDescriptor::loadFromJSON(descriptor, splitObj, splitObj["data"].toObject());
+			auto *chat = this->addChatByID(it.key(), false);
+			if (!chat) {
+				continue;
+			}
+			chat->split()->setChannel(chatterino::WindowManager::decodeChannel(descriptor));
+			chat->split()->setModerationMode(descriptor.moderationMode_);
+			chat->split()->setFilters(descriptor.filters_);
+			chat->split()->setCheckSpellingOverride(descriptor.spellCheckOverride);
+		}
+	}
+
+	QJsonObject serialize() const
+	{
+		QJsonObject obj;
+		for (const auto &[key, val] : this->widgets) {
+			if (!val) {
+				continue;
+			}
+			auto *split = val->split();
+			QJsonObject splitObj;
+			chatterino::WindowManager::encodeSplit(split, splitObj);
+			obj[key] = std::move(splitObj);
+		}
+		return obj;
+	}
 
 	void addChat()
 	{
-		auto *chat = new ChatWidget(static_cast<QMainWindow *>(obs_frontend_get_main_window()));
 		auto uuid = QUuid::createUuid();
-		std::string id = "chatterino-obs:" + uuid.toString().toStdString();
-		if (!obs_frontend_add_dock_by_id(id.c_str(), "Chatterino", chat)) {
-			return;
-		}
-		QMetaObject::invokeMethod(
-			chat,
-			[chat] {
-				obs_log(LOG_INFO, "Visibling: %s", chat->parentWidget()->metaObject()->className());
-				chat->parentWidget()->setVisible(true);
-			},
-			Qt::QueuedConnection);
-		this->widgets.emplace_back(chat);
+		auto id = "chatterino-obs:" + uuid.toString();
+		this->addChatByID(id, true);
 	}
 
 public:
@@ -108,7 +163,23 @@ public:
 	chatterino::Application app;
 
 private:
-	std::vector<QPointer<ChatWidget>> widgets;
+	ChatWidget *addChatByID(const QString &id, bool forceVisible)
+	{
+		auto *chat = new ChatWidget(id, static_cast<QMainWindow *>(obs_frontend_get_main_window()));
+		if (!obs_frontend_add_dock_by_id(id.toStdString().c_str(), "Chatterino", chat)) {
+			chat->deleteLater();
+			return nullptr;
+		}
+
+		if (forceVisible) {
+			QMetaObject::invokeMethod(
+				chat, [chat] { chat->parentWidget()->setVisible(true); }, Qt::QueuedConnection);
+		}
+		this->widgets.emplace_back(id, chat);
+		return chat;
+	}
+
+	std::vector<std::pair<QString, QPointer<ChatWidget>>> widgets;
 };
 
 #ifdef Q_OS_WIN
@@ -217,9 +288,9 @@ extern "C" void chatterino_obs_init()
 			}
 
 			if (saving) {
-				GLOBAL_STATE->save();
+				GLOBAL_STATE->save(save_data);
 			} else {
-				GLOBAL_STATE->load();
+				GLOBAL_STATE->load(save_data);
 			}
 		},
 		nullptr);
