@@ -11,9 +11,7 @@
       "hidden": true,
       "cacheVariables": {
         "ENABLE_FRONTEND_API": true,
-        "ENABLE_QT": true,
-        "CHATTERINO_SPELLCHECK": true,
-        "USE_PRECOMPILED_HEADERS": true
+        "ENABLE_QT": true
       }
     },
     {
@@ -60,10 +58,6 @@
         "rhs": "Windows"
       },
       "generator": "Visual Studio 18 2026",
-      "cacheVariables": {
-        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "cmake/common/conan_provider.cmake",
-        "CONAN_INSTALL_ARGS": "-b=missing;-c;user.openssl:windows_use_jom=True"
-      },
       "architecture": "x64",
       "warnings": { "dev": true, "deprecated": true }
     },

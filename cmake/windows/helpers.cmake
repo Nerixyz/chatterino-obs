@@ -7,16 +7,6 @@ include(helpers_common)
 include(arch)
 
 function(_win_deploy_shared_libs target)
-  set(_bin_dir "${OpenSSL_DIR}/bin")
-  if(NOT EXISTS "${_bin_dir}")
-    message(FATAL_ERROR "Missing conan binary directory. Expected at '${_bin_dir}'")
-  endif()
-  message(STATUS "Using conan bin directory '${_bin_dir}'")
-
-  file(GLOB _conan_bin_files "${_bin_dir}/*.dll")
-
-  install(FILES ${_conan_bin_files} DESTINATION "${target}/bin/64bit")
-
   # Qt6_DIR = qt-dir/lib/cmake/Qt6
   find_package(Qt6)
   set(_qt_plugin_dir "${Qt6_DIR}/../../../plugins")
@@ -62,6 +52,36 @@ function(set_target_properties_plugin target)
 
   set_target_properties(${target} PROPERTIES VERSION 0 SOVERSION ${PLUGIN_VERSION})
 
+  string(
+    CONFIGURE
+    [=[
+    block(SCOPE_FOR POLICIES)
+      if(POLICY CMP0207)
+        cmake_policy(SET CMP0207 NEW)
+      endif()
+      set(_mylist $<TARGET_RUNTIME_DLL_DIRS:@target@>)
+      file(GET_RUNTIME_DEPENDENCIES
+        RESOLVED_DEPENDENCIES_VAR _MYDEPS
+        MODULES
+          $<TARGET_FILE:@target@>
+        DIRECTORIES
+          ${_mylist}
+        PRE_EXCLUDE_REGEXES
+          "^api-ms-" "^ext-ms-" "^[qQ][tT]"
+          "^w32-pthreads.dll" "^obs"
+        POST_EXCLUDE_REGEXES
+          ".*system32/.*\\.dll"
+      )
+      foreach(_dep IN LISTS _MYDEPS)
+        file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/@target@/bin/64bit" TYPE SHARED_LIBRARY FILES ${_dep}
+          FOLLOW_SYMLINK_CHAIN)
+      endforeach()
+    endblock()
+  ]=]
+    _code
+    @ONLY
+  )
+  install(CODE "${_code}" ALL_COMPONENTS)
   install(TARGETS ${target} RUNTIME DESTINATION "${target}/bin/64bit" LIBRARY DESTINATION "${target}/bin/64bit")
 
   install(

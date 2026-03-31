@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.28...3.30)
 
+if(POLICY CMP0207)
+  cmake_policy(SET CMP0207 NEW)
+endif()
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
 
 project(${_name} VERSION ${_version})
@@ -33,13 +37,11 @@ if(ENABLE_QT)
     PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON CXX_STANDARD 23
   )
 endif()
-find_package(OpenSSL REQUIRED)
 
-set(BUILD_APP OFF CACHE BOOL "")
-add_subdirectory(lib/chatterino2 EXCLUDE_FROM_ALL)
+find_package(chatterino-embed CONFIG REQUIRED HINTS "${CMAKE_CURRENT_SOURCE_DIR}/lib/chatterino2/build/install")
+find_package(Qt6 REQUIRED COMPONENTS Network)
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c src/Setup.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE chatterino-lib)
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/lib/chatterino2/src)
+target_sources(${PROJECT_NAME} PRIVATE src/ChatWidget.cpp src/plugin-main.c src/Setup.cpp)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE chatterino-embed::chatterino-embed Qt6::Network)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

@@ -16,11 +16,17 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+
 #include <plugin-support.h>
 
 const char *PLUGIN_NAME = "@CMAKE_PROJECT_NAME@";
 const char *PLUGIN_VERSION = "@CMAKE_PROJECT_VERSION@";
 
+extern void blogva(int log_level, const char *format, va_list args);
 void obs_log(int log_level, const char *format, ...)
 {
 	size_t length = 4 + strlen(PLUGIN_NAME) + strlen(format);
